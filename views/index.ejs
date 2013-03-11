@@ -1,0 +1,30 @@
+<% if (!user) { %>
+	<h2>Welcome! Please log in.</h2>
+	<a href="/login">login</a>
+<% } else { %>
+	<h2>Hello, <%= user.username %>.</h2>
+	<script src="http://localhost:3000/socket.io/socket.io.js"></script>
+	<script src="jquery.min.js"></script>
+	<script>
+/***********************************************/
+var me = '<%= user.username %>';
+var socket = io.connect();
+socket.on('resp', function(data) {
+  $('#channel').append(data + '<br>');
+});
+$(document).ready(function() {
+  $('#message').keyup(function(e){
+    if (e.keyCode == 13) {
+      if (this.value == '') return;
+      socket.emit('data', me + ': ' + this.value);
+      this.value = '';
+    }
+  });
+});
+/***********************************************/
+	</script>
+	<div id="usrlist" style="width:90px;height:100px;overflow:scroll;
+				 position:absolute;left:700px;"></div>
+	<div id="channel" style="width:600px;height:300px;background-color:lightblue;overflow:scroll;"></div>
+	<input type="text" id="message" style="bottom:5px;margin:10px;margin-left:15px" size="70" />
+<% } %>
