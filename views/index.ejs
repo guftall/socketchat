@@ -10,7 +10,16 @@
 var me = '<%= user.username %>';
 var socket = io.connect();
 socket.on('resp', function(data) {
-  $('#channel').append(data + '<br>');
+  var ch = $('#channel');
+  ch.append(data + '<br>');
+  var t = ch.scrollTop();
+  ch.scrollTop(t + 3000);
+});
+socket.on('onlinelist_resp', function(data) {
+  $('#usrlist').html('');
+  for (i in data) {
+    $('#usrlist').append(data[i] + '<br>');
+  }
 });
 $(document).ready(function() {
   $('#message').keyup(function(e){
@@ -19,6 +28,10 @@ $(document).ready(function() {
       socket.emit('data', me + ': ' + this.value);
       this.value = '';
     }
+  });
+  socket.emit('onlinelist');
+  $(window).unload(function () {
+    socket.emit('unlinkuser', me);
   });
 });
 /***********************************************/

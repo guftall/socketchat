@@ -1,6 +1,6 @@
 #!/usr/local/bin/node
 
-var APP_NAME = 'mychat',
+var APP_NAME = 'socketchat',
     APP_PORT = 3000
 
 var express = require('express');
@@ -140,12 +140,22 @@ app.get('/logout', function(req, res){
 //   the request will proceed.  Otherwise, the user will be redirected to the
 //   login page.
 function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
+  if (req.isAuthenticated()) { req.user.online = true; return next(); }
   res.redirect('/login')
+}
+
+function onlinelist() {
+  var ulist = [];
+  for (i in users) {
+    if (users[i].online)
+      ulist.push(users[i].username);
+  }
+  return ulist;
 }
 
 app.get('/', ensureAuthenticated, function(req, res) {
   res.render('index', { user: req.user, message: req.flash('error') });
+  io.sockets.emit('resp', '[' + req.user.username + ' joined]');
 });
 
 app.get('/login', function(req, res){
@@ -161,6 +171,21 @@ io.sockets.on('connection', function(socket) {
   socket.on('data', function(data) {
     console.log('CLIENT:' + data);
     io.sockets.emit('resp', data);
+  });
+  socket.on('onlinelist', function() {
+    io.sockets.emit('onlinelist_resp', onlinelist());
+  });
+  socket.on('disconnect', function() {
+    io.sockets.emit('onlinelist_resp', onlinelist());
+  });
+  socket.on('unlinkuser', function(data) {
+    console.log('unlinkuser:' + data);
+    for (var i = 0, len = users.length; i < len; i++) {
+      if (users[i].username == data)
+        users[i].online = false;
+    };
+    io.sockets.emit('resp', '[' + data + ' disconnected]');
+    io.sockets.emit('onlinelist_resp', onlinelist());
   });
 });
 
