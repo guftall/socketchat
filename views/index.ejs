@@ -3,7 +3,7 @@
 	<a href="/login">login</a>
 <% } else { %>
 	<h2>Hello, <%= user.name %>.</h2>
-	<a href="/logout">logout</a>
+	<a style="float:right" href="#" onclick="window.onbeforeunload=null;window.location='/logout'">logout</a>
 	<script src="http://localhost:3000/socket.io/socket.io.js"></script>
 	<script src="jquery.min.js"></script>
 	<script>
@@ -44,7 +44,7 @@ window.onbeforeunload = function() {
 /***********************************************/
 	</script>
 	<div id="usrlist" style="width:90px;height:100px;overflow:scroll;
-				 position:absolute;left:700px;"></div>
+				 float:right;"></div>
 	<div id="channel" style="width:600px;height:300px;background-color:lightblue;overflow:scroll;"></div>
 	<input type="text" id="message" style="bottom:5px;margin:10px;margin-left:15px" size="70" />
 <% } %>
