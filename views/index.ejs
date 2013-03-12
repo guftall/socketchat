@@ -2,12 +2,13 @@
 	<h2>Welcome! Please log in.</h2>
 	<a href="/login">login</a>
 <% } else { %>
-	<h2>Hello, <%= user.username %>.</h2>
+	<h2>Hello, <%= user.name %>.</h2>
+	<a href="/logout">logout</a>
 	<script src="http://localhost:3000/socket.io/socket.io.js"></script>
 	<script src="jquery.min.js"></script>
 	<script>
 /***********************************************/
-var me = '<%= user.username %>';
+var me = '<%= user.name %>';
 var socket = io.connect();
 socket.on('resp', function(data) {
   var ch = $('#channel');
@@ -16,6 +17,7 @@ socket.on('resp', function(data) {
   ch.scrollTop(t + 3000);
 });
 socket.on('onlinelist_resp', function(data) {
+  console.log(data);
   $('#usrlist').html('');
   for (i in data) {
     $('#usrlist').append(data[i] + '<br>');
@@ -32,8 +34,13 @@ $(document).ready(function() {
   socket.emit('onlinelist');
   $(window).unload(function () {
     socket.emit('unlinkuser', me);
+    return 'Use logout please';
   });
 });
+window.onbeforeunload = function() {
+  socket.emit('unlinkuser', me);
+  return 'Use logout please';
+}
 /***********************************************/
 	</script>
 	<div id="usrlist" style="width:90px;height:100px;overflow:scroll;

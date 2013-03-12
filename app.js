@@ -10,11 +10,27 @@ var flash = require('connect-flash')
   , util = require('util')
   , http = require('http')
   , LocalStrategy = require('passport-local').Strategy;
-  
+
+var pg = require('pg');
+var c = new pg.Client('tcp://pguser:pgpass@localhost/pgdb');
+c.connect();
+
+var users;
+
+function loadusers(rows) {
+  users = rows;
+}
+
+c.query('select * from chatusers', function(err, res) { if (!err) loadusers(res.rows) });
+
+/*
 var users = [
-    { id: 1, username: 'bob', password: 'secret', email: 'bob@example.com', inbox: [], online: false }
-  , { id: 2, username: 'joe', password: 'birthday', email: 'joe@example.com', inbox: [], online: false }
+    { id: 1, username: 'bob', password: 'secret', email: 'bob@example.com', online: false }
+  , { id: 2, username: 'joe', password: 'birthday', email: 'joe@example.com', online: false }
 ];
+*/
+
+
 
 function findById(id, fn) {
   var idx = id - 1;
@@ -28,7 +44,7 @@ function findById(id, fn) {
 function findByUsername(username, fn) {
   for (var i = 0, len = users.length; i < len; i++) {
     var user = users[i];
-    if (user.username === username) {
+    if (user.name === username) {
       return fn(null, user);
     }
   }
@@ -65,9 +81,10 @@ passport.use(new LocalStrategy(
       // indicate failure and set a flash message.  Otherwise, return the
       // authenticated `user`.
       findByUsername(username, function(err, user) {
+         console.log(users);
         if (err) { return done(err); }
         if (!user) { return done(null, false, { message: 'Unknown user ' + username }); }
-        if (user.password != password) { return done(null, false, { message: 'Invalid password' }); }
+        if (user.pass != password) { return done(null, false, { message: 'Invalid password' }); }
         return done(null, user);
       })
     });
@@ -128,6 +145,8 @@ app.post('/login', function(req, res, next) {
 
 app.get('/logout', function(req, res){
   req.user.online = false;
+  io.sockets.emit('resp', '[' + req.user.name + ' left]');
+  io.sockets.emit('onlinelist_resp', onlinelist());
   req.logout();
   res.redirect('/');
 });
@@ -148,14 +167,15 @@ function onlinelist() {
   var ulist = [];
   for (i in users) {
     if (users[i].online)
-      ulist.push(users[i].username);
+      ulist.push(users[i].name);
   }
   return ulist;
 }
 
 app.get('/', ensureAuthenticated, function(req, res) {
   res.render('index', { user: req.user, message: req.flash('error') });
-  io.sockets.emit('resp', '[' + req.user.username + ' joined]');
+  io.sockets.emit('resp', '[' + req.user.name + ' joined]');
+  io.sockets.emit('onlinelist_resp', onlinelist());
 });
 
 app.get('/login', function(req, res){
@@ -176,12 +196,13 @@ io.sockets.on('connection', function(socket) {
     io.sockets.emit('onlinelist_resp', onlinelist());
   });
   socket.on('disconnect', function() {
+    console.log('disconnected');
     io.sockets.emit('onlinelist_resp', onlinelist());
   });
   socket.on('unlinkuser', function(data) {
     console.log('unlinkuser:' + data);
     for (var i = 0, len = users.length; i < len; i++) {
-      if (users[i].username == data)
+      if (users[i].user == data)
         users[i].online = false;
     };
     io.sockets.emit('resp', '[' + data + ' disconnected]');
